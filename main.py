@@ -17,6 +17,9 @@ spark = SparkSession \
     .config("spark.some.config.option", "some-value") \
     .getOrCreate()
 
+# Use this to overwrite specific partition 
+spark.conf.set("spark.sql.sources.partitionOverwriteMode","dynamic")
+
 # load csv
 df = spark.read.format("csv") \
       .option("header", True) \
@@ -28,7 +31,7 @@ df.printSchema()
 df.show()
 
 # write to parquet
-df.write.option("header",True).partitionBy("key").mode('overwrite').parquet(r"data/")
+df.repartition(2).write.option("header",True).partitionBy("key").mode('overwrite').parquet(r"data/")
 
 # read parquet
 parquetFile = spark.read.parquet("data")
