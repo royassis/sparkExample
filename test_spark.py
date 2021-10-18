@@ -2,8 +2,7 @@ from pyspark.sql import SparkSession
 from pyspark.sql.types import IntegerType, StructType, StringType, DateType
 import pyspark.sql.functions as F
 from os.path import abspath
-import pyspark
-from datetime import datetime
+from pathlib import Path
 
 # sc = pyspark.SparkContext('local[*]')
 # conf = pyspark.SparkConf()
@@ -13,20 +12,21 @@ from datetime import datetime
 # .config("hive.metastore.uris", "localhost:9083")\
 
 
-spark = SparkSession \
-    .builder \
-    .master('spark://localhost:7077')\
-    .appName("Python Spark SQL basic example") \
-    .config("spark.sql.warehouse.dir", "/user/hive/warehouse") \
-    .enableHiveSupport() \
-    .getOrCreate()
-# spark = SparkSession.builder.master('local[*]').getOrCreate()
+# spark = SparkSession \
+#     .builder \
+#     .master('spark://localhost:7077')\
+#     .appName("Python Spark SQL basic example") \
+#     .config("spark.sql.warehouse.dir", "/user/hive/warehouse") \
+#     .enableHiveSupport() \
+#     .getOrCreate()
+    
+spark = SparkSession.builder.master('local[*]').getOrCreate()
 
 # Use this to overwrite specific partition 
-spark.conf.set("spark.sql.sources.partitionOverwriteMode","dynamic")
+# spark.conf.set("spark.sql.sources.partitionOverwriteMode","dynamic")
 
 # Read from hive table
-spark.sql("use testdb")
+# spark.sql("use testdb")
 
 # Read from hdfs
 # TODO
@@ -39,10 +39,12 @@ schema = StructType() \
 
 
 # load csv
+csv_uri = Path(__file__).parent.joinpath("data.csv").as_uri()
+
 df = spark.read.format("csv") \
       .option("header", True) \
       .schema(schema) \
-      .load("file:////home/roy/scripts/python-projects/sparkTest/data.csv")
+      .load(csv_uri)
       # .load("hdfs://localhost:9000/tmp/data.csv")
 
 # show data
@@ -50,11 +52,12 @@ df.printSchema()
 df.show()
 
 # write to parquet
-df.repartition(2,"key").write.option("header",True).partitionBy("key").mode('overwrite').parquet(r"data/")
+spark_df_uri = Path(__file__).parent.joinpath("data").as_uri()
+df.repartition(2,"key").write.option("header",True).partitionBy("key").mode('overwrite').parquet(spark_df_uri)
 
 ## read parquet
 # fs
-parquetFile = spark.read.parquet("file:////home/roy/pycharmProject/sparkTest/data")
+parquetFile = spark.read.parquet(spark_df_uri)
 # hdfs
 parquetFile = spark.read.parquet("file:////tmp/data")
 
